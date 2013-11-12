@@ -1,0 +1,9 @@
+%p
+  = @sender.name
+  = tr("commented on","email")
+  = @notifiable.activity.name
+  \:
+%p= @notifiable.content
+%p
+  = tr("You can view or stop following this discussion here","email")
+  \: #{link_to @notifiable.show_url, @notifiable.show_url}

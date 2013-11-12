@@ -4,7 +4,10 @@
     %meta{:content => "text/html; charset=utf-8", "http-equiv" => "Content-Type"}/
     %meta{:content => "width=device-width, initial-scale=1.0", :name => "viewport"}
     %title
-      = " | #{@page_title || current_instance.name}"
+      - if SubInstance.current and SubInstance.current.short_name!="default"
+        = "#{@page_title || current_instance.name}"
+      - else
+        = "#{@page_title || current_instance.name}"
     :javascript
       var PAYMILL_PUBLIC_KEY = '#{ENV['PAYMILL_PUBLIC_KEY']}';
     = render :partial=>"ideas/fb_og_tags"
@@ -28,13 +31,13 @@
           .col-content.no-margin
             = render :partial => "sub_instances/message_to_users" if controller_name=="home"
       .nav.nav-main
-        = render :partial => "shared/side_navigation" unless SubInstance.current.short_name == "default"
+        = render :partial => "shared/side_navigation" #unless SubInstance.current.short_name == "default"
+      = render :partial => "ads/pick"
       #content.content
         .content-wrap.col-group
           .col-12
             .col-content.mainbox
               = flash_div :warning, :notice, :error
-              = render :partial => "ads/pick"
               - unless (controller_name == "home" && action_name == "world") or @skip_sub_navigation
                 = render :partial => "shared/sub_navigation"
               = yield :layout

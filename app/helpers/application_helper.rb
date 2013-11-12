@@ -1,6 +1,37 @@
 # Methods added to this helper will be available to all templates in the application.
-
 module ApplicationHelper
+
+  def first_image_url_from_text(text)
+    image_url = nil
+    URI.extract(text).each do |url|
+      #TODO: Check if its really an image url
+      url = url.downcase
+      image_url = url if url.include?(".png") or url.include?(".jpg") or url.include?(".jpg")
+    end
+    image_url
+  end
+
+  def currency_with_unit(amount,currency)
+    if currency=="USD"
+      number_to_currency amount, :unit=>"$", :precision=>0, :locale=>"en"
+    elsif currency=="EUR"
+      number_to_currency amount, :unit=>"&euro;", :precision=>0, :locale=>"en"
+    elsif currency=="GBP"
+      number_to_currency amount, :unit=>"&pound;", :precision=>0, :locale=>"en"
+    elsif currency=="ISK"
+      number_to_currency amount, :unit=>"kr.", :precision=>0, format: "%n %u", :locale=>"en"
+    end
+  end
+
+
+  def get_locale_demo_host(domain)
+    locale_host = "https://demo-#{I18n.locale}"
+    if SubInstance.find_by_short_name("demo-#{I18n.locale}")
+      locale_host+domain
+    else
+      "https://demo"+domain
+    end
+  end
 
   def calc_language_completion(count)
     if current_user and current_user.is_root? and count>0

@@ -128,9 +128,9 @@ class User < ActiveRecord::Base
   
   validates_presence_of     :email
   validates_length_of       :email, :within => 3..100
-  validates :email, :uniqueness => {:scope => :sub_instance_id}
+  #validates :email, :uniqueness => {:scope => :sub_instance_id}
   validates_format_of       :email, :with => /^[-^!$#%&'*+\/=3D?`{|}~.\w]+@[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])*(\.[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])*)+$/x
-  validates_uniqueness_of   :facebook_uid, :allow_nil => true, :allow_blank => true
+  validates_uniqueness_of   :facebook_uid, :allow_nil => true, :allow_blank => true, :scope => :sub_instance_id
 
   #validates_presence_of     :post_code, :message => tr("Please enter your postcode.", "model/user")
   #validates_presence_of     :age_group, :message => tr("Please select your age group.", "model/user")
@@ -152,6 +152,43 @@ class User < ActiveRecord::Base
   after_create :give_user_credit
   after_create :new_user_signedup
   after_create :set_signup_country
+
+  include Workflow
+  workflow_column :status
+  workflow do
+    state :pending do
+      event :activate, transitions_to: :active
+      event :suspend, transitions_to: :suspended
+      event :remove, transitions_to: :removed
+      event :probation, transitions_to: :probation
+    end
+    state :passive do
+      event :register, transitions_to: :pending
+      event :activate, transitions_to: :active
+      event :suspend, transitions_to: :suspended
+      event :remove, transitions_to: :removed
+      event :probation, transitions_to: :probation
+    end
+    state :active do
+      event :suspend, transitions_to: :suspended
+      event :remove, transitions_to: :removed
+      event :probation, transitions_to: :probation
+    end
+    state :suspended do
+      event :remove, transitions_to: :removed
+      event :unsuspend, transitions_to: :active, meta: { validates_presence_of: [:activated_at] }
+      event :unsuspend, transitions_to: :pending, meta: { validates_presence_of: [:activation_code] }
+      event :unsuspend, transitions_to: :passive
+    end
+    state :probation do
+      event :suspend, transitions_to: :suspended
+      event :remove, transitions_to: :removed
+      event :unprobation, transitions_to: :active, meta: { validates_presence_of: [:activated_at] }
+      event :unprobation, transitions_to: :pending, meta: { validates_presence_of: [:activation_code] }
+      event :unprobation, transitions_to: :passive
+    end
+    state :removed
+  end
 
   before_save do
     self.email.downcase! if self.email
@@ -183,6 +220,16 @@ class User < ActiveRecord::Base
         user.password = Devise.friendly_token[0, 20]
       end
     end
+  end
+
+  def email_required?
+  end
+
+  def email_changed?
+    return true if persisted?
+    # your code for validation for uniqueness and email format
+    # Note that this method also skips the email format validation
+    return false
   end
 
   def confirmed?
@@ -316,43 +363,6 @@ class User < ActiveRecord::Base
     if confirmed_at_changed? && !active?
       activate!
     end
-  end
-
-  include Workflow
-  workflow_column :status
-  workflow do
-    state :pending do
-      event :activate, transitions_to: :active
-      event :suspend, transitions_to: :suspended
-      event :remove, transitions_to: :removed
-      event :probation, transitions_to: :probation
-    end
-    state :passive do
-      event :register, transitions_to: :pending
-      event :activate, transitions_to: :active
-      event :suspend, transitions_to: :suspended
-      event :remove, transitions_to: :removed
-      event :probation, transitions_to: :probation
-    end
-    state :active do
-      event :suspend, transitions_to: :suspended
-      event :remove, transitions_to: :removed
-      event :probation, transitions_to: :probation
-    end
-    state :suspended do
-      event :remove, transitions_to: :removed
-      event :unsuspend, transitions_to: :active, meta: { validates_presence_of: [:activated_at] }
-      event :unsuspend, transitions_to: :pending, meta: { validates_presence_of: [:activation_code] }
-      event :unsuspend, transitions_to: :passive
-    end
-    state :probation do
-      event :suspend, transitions_to: :suspended
-      event :remove, transitions_to: :removed
-      event :unprobation, transitions_to: :active, meta: { validates_presence_of: [:activated_at] }
-      event :unprobation, transitions_to: :pending, meta: { validates_presence_of: [:activation_code] }
-      event :unprobation, transitions_to: :passive
-    end
-    state :removed
   end
 
    def on_pending_entry(new_state = nil, event = nil)
@@ -697,7 +707,7 @@ class User < ActiveRecord::Base
     capitals_difference = new_capitals_count - self.capitals_count
     self.update_attribute(:capitals_count,new_capitals_count)
 
-    if capitals_difference != 0 and !self.is_admin and self.is_capital_subscribed and self.status == "active"
+    if capitals_difference > 0 and self.is_capital_subscribed and self.status == "active"
       #User.delay.send_capital_email(self.activities.last.id, capitals_difference)
       Rails.logger.info("Sending capital email")
       SendCapitalEmail.perform_in(3.seconds, self.activities.last.id, capitals_difference)
@@ -962,8 +972,10 @@ class User < ActiveRecord::Base
   def first_name_detected
     if self.first_name and self.first_name!=""
       self.first_name
-    else
+    elsif login
       self.login.split(" ")[0]
+    else
+      self.email
     end
   end
 
@@ -981,7 +993,7 @@ class User < ActiveRecord::Base
   end
   
   def unsubscribe_url
-    'http://' + Instance.current.base_url_w_sub_instance + '/unsubscribes/new'
+    'https://' + Instance.current.base_url_w_sub_instance + '/unsubscribes/new'
   end
   
   def self.adapter
@@ -1094,5 +1106,14 @@ class User < ActiveRecord::Base
     else
       false
     end
+  end
+
+  # For Monologue
+  def password_digest(p=nil)
+    self.encrypted_password
+  end
+
+  def name
+    self.login
   end
 end

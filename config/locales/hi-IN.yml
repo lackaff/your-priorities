@@ -61,12 +61,12 @@ hi-IN:
     am: am
     pm: pm
   support:
-    array:
-      words_connector: ', '
-      two_words_connector: ' और '
-      last_word_connector: ', और '
     select:
       prompt: कृपया चुनें
+    array:
+      two_words_connector: और
+      last_word_connector: ', और'
+      words_connector: ','
   number:
     format:
       separator: .

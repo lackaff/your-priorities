@@ -63,6 +63,18 @@ end
 
 namespace :fix do
 
+
+
+  desc "FixCat"
+  task :fix_cat do
+    Category.unscoped.all.each do |c|
+      if c.sub_instance_id == nil
+        c.sub_instance_id = SubInstance.find_by_short_name("default").id
+        c.save
+      end
+    end
+  end
+
   desc "Clear sub instance graphics"
   task :clear_sub_instance_graphics => :environment do
     SubInstance.all.each do |s|
@@ -285,8 +297,8 @@ namespace :fix do
 
   desc 'it2'
   task :it2 => :environment do
-    Tagging.update_all("taggable_type='Idea' where taggable_type='Priority'")
-    Notification.update_all("notifiable_type='Idea' where notifiable_type='Priority'")
+    Tagging.update_all("taggable_type='Idea' where taggable_type='Idea'")
+    Notification.update_all("notifiable_type='Idea' where notifiable_type='Idea'")
     ['General', 'Localization', 'User interface', 'Data sources'].each do |name|
       category = Category.find_by_name(name)
       category.destroy

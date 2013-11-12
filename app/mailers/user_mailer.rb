@@ -4,14 +4,40 @@ class UserMailer < Devise::Mailer
 
   # so DelayedJob will know how to make absolute urls
   def default_url_options
-    { host: Instance.last.domain_name }.merge(super)
+    if @activity and @activity.sub_instance_id
+      { host:  "#{SubInstance.find(@activity.sub_instance_id).short_name}.#{Instance.last.domain_name}", :protocol => 'https'}.merge(super)
+    elsif @user and @user.sub_instance_id
+      { host: "#{SubInstance.find(@user.sub_instance_id).short_name}.#{Instance.last.domain_name}", :protocol => 'https'}.merge(super)
+    else
+      { host: "www.#{Instance.last.domain_name}" , :protocol => 'https'}.merge(super)
+    end
+  end
+
+  def thank_you_for_payment(user, payment, plan, next_payment, args={})
+    @current_plan = plan
+    @recipient = @resource = @sender = @recipient = @user = user
+    @payment = payment
+    @next_payment = next_payment
+    @instance = Instance.last
+    setup_locale
+    @sub_instance = SubInstance.where(:id=>user.sub_instance_id).first
+    @instance_name = @sub_instance.name
+
+    attachments.inline['logo.png'] = get_email_banner
+    mail  to: @user.email,
+          reply_to: @instance.admin_email,
+          from: "#{@instance.name} <#{@instance.admin_email}>",
+          subject: tr("Thank you for your payment on {instance_name}","email", :instance_name => @instance.name) do |format|
+      format.text { render text: convert_to_text(render_to_string(__method__, formats: [:html])) }
+      format.html
+    end
   end
 
   def invitation_instructions(user, args)
-    setup_locale
-    @resource = @sender = @recipient = @user = user
+    @recipient = @resource = @sender = @recipient = @user = user
     @instance = Instance.last
     invited_by = User.where(:id=>user.invited_by_id).first
+    setup_locale(invited_by)
     Rails.logger.debug("INVITED_BY USER: #{invited_by.inspect}")
     @sender_name = invited_by.login
     sub_instance = SubInstance.where(:id=>invited_by.sub_instance_id).first
@@ -21,15 +47,32 @@ class UserMailer < Devise::Mailer
     mail  to: @user.email,
           reply_to: @instance.admin_email,
           from: "#{@instance.name} <#{@instance.admin_email}>",
-          subject: tr("You have been invited to join {instance_name}","email", :instance_name => @instance.name) do |format|
+          subject: tr("You have been invited to join {sub_instance_name} on {instance_name}","email", :sub_instance_name => sub_instance.name, :instance_name => @instance.name) do |format|
+      format.text { render text: convert_to_text(render_to_string(__method__, formats: [:html])) }
+      format.html
+    end
+  end
+
+  def new_sub_instance(user, args={})
+    @recipient = @resource = @sender = @recipient = @user = user
+    @instance = Instance.last
+    setup_locale
+    @sub_instance = SubInstance.where(:id=>user.sub_instance_id).first
+    @instance_name = @sub_instance.name
+
+    attachments.inline['logo.png'] = get_email_banner
+    mail  to: @user.email,
+          reply_to: @instance.admin_email,
+          from: "#{@instance.name} <#{@instance.admin_email}>",
+          subject: tr("{sub_instance_name} is ready on {instance_name}","email", :sub_instance_name => @sub_instance.name, :instance_name => @instance.name) do |format|
       format.text { render text: convert_to_text(render_to_string(__method__, formats: [:html])) }
       format.html
     end
   end
 
   def confirmation_instructions(user, opts={})
+    @recipient = @user = user
     setup_locale
-    @user = user
     @instance = Instance.last
     attachments.inline['logo.png'] = get_email_banner
     mail  to: "#{@user.real_name.titleize} <#{@user.email}>",
@@ -42,8 +85,8 @@ class UserMailer < Devise::Mailer
   end
 
   def reset_password_instructions(user, opts={})
+    @recipient = @user = user
     setup_locale
-    @user = user
     @instance = Instance.last
     attachments.inline['logo.png'] = get_email_banner
     mail  to: "#{@user.real_name.titleize} <#{@user.email}>",
@@ -56,8 +99,8 @@ class UserMailer < Devise::Mailer
   end
 
   def welcome(user)
-    setup_locale
     @recipient = @user = user
+    setup_locale
     @instance = Instance.last
     recipients  = "#{user.real_name.titleize} <#{user.email}>"
     attachments.inline['logo.png'] = get_email_banner
@@ -71,14 +114,12 @@ class UserMailer < Devise::Mailer
   end
 
   def lost_or_gained_capital(user, activity, point_difference, sub_instance_id)
-    if sub_instance_id
-      SubInstance.current=SubInstance.where(:id=>sub_instance_id).first
-    end
-    setup_locale
+    instance_name = setup_instance_name(sub_instance_id)
     @instance = Instance.last
     @activity = activity
     @point_difference = point_difference
     @recipient = @user = user
+    setup_locale
     recipient = "#{user.real_name.titleize} <#{user.email}>"
     attachments.inline['logo.png'] = get_email_banner
 
@@ -93,27 +134,30 @@ class UserMailer < Devise::Mailer
          from:     "#{Instance.last.name} <#{Instance.last.admin_email}>",
          subject:  subject do |format|
       format.text { render text: convert_to_text(render_to_string("lost_or_gained_capital", formats: [:html])) }
-      format.html
+      format.html { render :template=>"user_mailer/master_template", :locals=>{:subject=>subject, :partial_name=>"lost_or_gained_capital", :instance_name=>instance_name}}
     end
   end
 
   def idea_status_update(idea, status, status_date, status_subject, status_message, user, position)
-    setup_locale
     @idea = idea
     @instance = Instance.last
     @status = status
     @date = status_date
     @status_subject = status_subject
     @message = status_message
-    @support_or_endorse_text = position == 1 ? tr("which you support", "email") : tr("which you oppose", "email")
-    attachments.inline['logo.png'] = get_email_banner
-
     @recipient = @user = user
+    setup_locale
+    if position == 1
+      @support_or_endorse_text = tr("which you support", "email")
+    else
+      @support_or_endorse_text = tr("which you oppose", "email")
+    end
+    attachments.inline['logo.png'] = get_email_banner
     recipient = "#{user.real_name.titleize} <#{user.email}>"
     mail to:       recipient,
          reply_to: Instance.last.admin_email,
          from:     "#{Instance.last.name} <#{Instance.last.admin_email}>",
-         subject:  tr('The status of the idea "{idea}" has been changed', "email", :idea => idea.name) do |format|
+         subject:  tr("The status of {idea} has been changed","email", :idea => idea.name) do |format|
       format.text { render text: convert_to_text(render_to_string("idea_status_update", formats: [:html])) }
       format.html
     end
@@ -132,6 +176,7 @@ class UserMailer < Devise::Mailer
     @important_to_followers = important_to_followers
     @near_top = near_top
     @recipient = @user = user
+    setup_locale
     recipient = "#{user.real_name.titleize} <#{user.email}>"
     attachments.inline['logo.png'] = get_email_banner
     mail to:       recipient,
@@ -145,8 +190,8 @@ class UserMailer < Devise::Mailer
   end
 
   def invitation(user,sender_name,to_name,to_email)
-    setup_locale
     @sender = @recipient = @user = user
+    setup_locale
     @instance = Instance.last
     @sender_name = sender_name
     @to_name = to_name
@@ -165,8 +210,8 @@ class UserMailer < Devise::Mailer
   end  
 
   def new_password(user,new_password)
-    setup_locale
     @recipient = @user = user
+    setup_locale
     @new_password = new_password
     @instance = Instance.last
     recipients  = "#{user.real_name.titleize} <#{user.email}>"
@@ -181,38 +226,29 @@ class UserMailer < Devise::Mailer
   end
   
   def notification(n,sender,recipient,notifiable)
-    setup_locale
+    if notifiable.respond_to?(:sub_instance_id) and notifiable.sub_instance_id
+      sub_instance_id = notifiable.sub_instance_id
+    else
+      sub_instance_id = nil
+    end
+    instance_name = setup_instance_name(sub_instance_id)
     @n = @notification = n
     @sender = sender
     @instance = Instance.last
     user = @user = @recipient = recipient
+    setup_locale
     @notifiable = notifiable
+    subject = @notification.name
     Rails.logger.info("Notification class: #{@n} #{@n.class.to_s}  #{@n.inspect} notifiable: #{@notifiable}")
     recipients  = "#{user.real_name.titleize} <#{user.email}>"
     attachments.inline['logo.png'] = get_email_banner
-    Rails.logger.info("Notification class: #{@n} #{@n.class.to_s}")
     mail :to => recipients,
          :reply_to => Instance.last.admin_email,
          :from => "#{Instance.last.name} <#{Instance.last.admin_email}>",
-         :subject => @notification.name do |format|
-      format.text { render :text=>convert_to_text(render_to_string("user_mailer/notifications/#{@n.class.to_s.underscore}", formats: [:html])) }      
-      format.html { render "user_mailer/notifications/#{@n.class.to_s.underscore}" }
+         :subject => subject do |format|
+      #format.text { render :text=>convert_to_text(render_to_string("user_mailer/notifications/#{@n.class.to_s.underscore}", formats: [:html])) }
+      format.html { render :template=>"user_mailer/master_template", :locals=>{:subject=>subject, :partial_name=>"user_mailer/notifications/#{@n.class.to_s.underscore}", :instance_name=>instance_name}}
     end
-  end
-  
-  def report(user,ideas,questions,documents,treaty_documents)
-    setup_locale
-    @instance = Instance.last
-    @recipients  = "#{user.login} <#{user.email}>"
-    @from        = "#{Instance.last.name} <#{Instance.last.email}>"
-    headers        "Reply-to" => Instance.last.email
-    @sent_on     = Time.now
-    @content_type = "text/html"
-    @ideas = ideas
-    @questions = questions
-    @documents = documents
-    @treaty_documents = treaty_documents
-    @subject = tr("Report", "model/mailer")
   end
   
 #   def new_change_vote(sender,recipient,vote)
@@ -226,8 +262,30 @@ class UserMailer < Devise::Mailer
   
   protected
 
-  def setup_locale
-    tr8n_current_locale = I18n.locale #=  "is"
+  def setup_sub_instance_from_current
+    if @activity and @activity.sub_instance_id
+      SubInstance.current = SubInstance.find(@activity.sub_instance_id)
+    elsif @user and @user.sub_instance_id
+      SubInstance.current = SubInstance.find(@user.sub_instance_id)
+    elsif @recipient and @recipient.sub_instance_id
+      SubInstance.current = SubInstance.find(@user.sub_instance_id)
+    else
+      SubInstance.current = SubInstance.where(:short_name=>"default")
+    end
+  end
+
+  def setup_locale(locale_user=nil)
+    setup_sub_instance_from_current
+    if locale_user and locale_user.last_locale and locale_user.last_locale!=""
+      I18n.locale = locale_user.last_locale
+    elsif @recipient and @recipient.last_locale and @recipient.last_locale!=""
+      I18n.locale = @recipient.last_locale
+    elsif Instance.current.default_locale
+      I18n.locale = Instance.current.default_locale
+    else
+      I18n.locale = "en"
+    end
+    tr8n_current_locale = I18n.locale
   end
 
   def setup_notification(user)
@@ -240,6 +298,16 @@ class UserMailer < Devise::Mailer
     end
 
   private
+
+    def setup_instance_name(sub_instance_id)
+      @instance = Instance.current
+      if sub_instance_id
+        SubInstance.current=SubInstance.where(:id=>sub_instance_id).first
+        instance_name = SubInstance.current.name if SubInstance.current
+      else
+        instance_name = @instance.name
+      end
+    end
 
     def get_email_banner
       if Instance.first.has_email_banner?

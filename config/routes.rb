@@ -1,4 +1,10 @@
 SocialInnovation::Application.routes.draw do
+  match '/donations/thank_you' => 'donations#thank_you'
+  match '/donations/estartup' => 'donations#estartup'
+  match '/donations/status' => 'donations#status'
+  match '/donations/thank_you_estartup' => 'donations#thank_you_estartup'
+
+  resources :donations
 
   resources :subscriptions
   resources :plans
@@ -17,13 +23,14 @@ SocialInnovation::Application.routes.draw do
 
   #mount WillFilter::Engine => "/will_filter"
   #mount Tr8n::Engine => "/tr8n"
- # mount Monologue::Engine, at: '/blog'
+  mount Monologue::Engine, at: '/blog'
 
   resources :categories
 
   match '/groups/suggest_user' => 'groups#suggest_user'
 
   match '/users/eula' => 'users#eula'
+
 
   match '/ideas/flag/:id' => 'ideas#flag'
   match '/ideas/abusive/:id' => 'ideas#abusive'
@@ -42,6 +49,7 @@ SocialInnovation::Application.routes.draw do
   resources :subscription_accounts do
     collection do
       get :users
+      get :about
     end
   end
 
@@ -159,6 +167,10 @@ SocialInnovation::Application.routes.draw do
       get :network
       get :consider
       get :finished
+      get :finished_in_progress
+      get :finished_successful
+      get :finished_failed
+      get :finished_compromised
       get :ads
       get :top
       get :by_tag
@@ -293,8 +305,13 @@ SocialInnovation::Application.routes.draw do
   end
 
   resource :open_id
+  match '/home/blog/:id' => 'home#blog'
 
-  match '/' => 'home#index'
+  if ENV['YRPRI_SET_HOME_TO_WORLD']
+    match '/' => 'home#world'
+  else
+    match '/' => 'home#index'
+  end
   match '/unsubscribe' => 'unsubscribes#new', :as => :unsubscribe
   match '/yours' => 'ideas#yours'
   match '/hot' => 'ideas#hot'

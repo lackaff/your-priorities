@@ -48,7 +48,7 @@ class PagesController < ApplicationController
 
     respond_to do |format|
       if @page.save
-        format.html { redirect_to @page, notice: 'Page was successfully created.' }
+        format.html { redirect_to @page, notice: tr("Page was successfully created.","here") }
         format.json { render json: @page, status: :created, location: @page }
       else
         format.html { render action: "new" }
@@ -61,6 +61,10 @@ class PagesController < ApplicationController
   # PUT /pages/1.json
   def update
     @page = Page.find(params[:id])
+
+    if @page.sub_instance.short_name=="default" and not current_user.is_root?
+      redirect_to :back
+    end
 
     respond_to do |format|
       if @page.update_attributes(params[:page])
@@ -77,6 +81,11 @@ class PagesController < ApplicationController
   # DELETE /pages/1.json
   def destroy
     @page = Page.find(params[:id])
+
+    if @page.sub_instance.short_name=="default" and not current_user.is_root?
+      redirect_to :back
+    end
+
     @page.destroy
 
     respond_to do |format|

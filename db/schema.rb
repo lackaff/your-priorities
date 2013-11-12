@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130617181641) do
+ActiveRecord::Schema.define(:version => 20131015103346) do
 
   create_table "accounts", :force => true do |t|
     t.string   "name"
@@ -212,6 +212,21 @@ ActiveRecord::Schema.define(:version => 20130617181641) do
   end
 
   add_index "delayed_jobs", ["priority", "run_at"], :name => "delayed_jobs_priority"
+
+  create_table "donations", :force => true do |t|
+    t.string   "cardholder_name"
+    t.string   "email"
+    t.string   "paymill_client_id"
+    t.string   "paymill_transaction_id"
+    t.string   "currency"
+    t.float    "amount"
+    t.datetime "created_at",                               :null => false
+    t.datetime "updated_at",                               :null => false
+    t.string   "organisation_name"
+    t.string   "display_name"
+    t.boolean  "anonymous_donor",        :default => true
+    t.integer  "external_project_id"
+  end
 
   create_table "endorsements", :force => true do |t|
     t.string   "status",          :limit => 50
@@ -525,6 +540,8 @@ ActiveRecord::Schema.define(:version => 20130617181641) do
     t.string   "external_link"
     t.string   "layout_for_subscriptions",                       :default => "application"
     t.string   "sales_email"
+    t.string   "about_page_name"
+    t.string   "default_locale",                                 :default => "en"
   end
 
   add_index "instances", ["domain_name"], :name => "index_instances_on_domain_name"
@@ -625,12 +642,12 @@ ActiveRecord::Schema.define(:version => 20130617181641) do
     t.integer  "max_users"
     t.datetime "created_at",                          :null => false
     t.datetime "updated_at",                          :null => false
-    t.float    "price_gbp"
-    t.float    "price_usd"
-    t.float    "price_eur"
     t.boolean  "private_instance", :default => false
-    t.float    "price_isk"
     t.boolean  "active",           :default => true
+    t.float    "amount"
+    t.float    "vat"
+    t.string   "paymill_offer_id"
+    t.boolean  "private",          :default => false
   end
 
   create_table "point_qualities", :force => true do |t|
@@ -853,6 +870,10 @@ ActiveRecord::Schema.define(:version => 20130617181641) do
     t.string   "home_page_layout",                               :default => "application"
     t.boolean  "lock_users_to_instance",                         :default => false
     t.boolean  "setup_in_progress",                              :default => false
+    t.text     "map_coordinates"
+    t.string   "organization_type"
+    t.string   "redirect_url"
+    t.text     "description"
   end
 
   add_index "sub_instances", ["short_name"], :name => "short_name"
@@ -972,7 +993,6 @@ ActiveRecord::Schema.define(:version => 20130617181641) do
     t.string   "country_english_name",                   :null => false
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.text     "map_coordinates"
     t.string   "default_locale",       :default => "en"
   end
 
@@ -1192,8 +1212,6 @@ ActiveRecord::Schema.define(:version => 20130617181641) do
     t.boolean  "admin"
     t.string   "locale"
     t.integer  "level",             :default => 0
-    t.datetime "synced_at"
-    t.string   "type"
   end
 
   add_index "tr8n_translation_keys", ["key"], :name => "index_tr8n_translation_keys_on_key", :unique => true
@@ -1237,7 +1255,6 @@ ActiveRecord::Schema.define(:version => 20130617181641) do
     t.text     "rules"
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.datetime "synced_at"
   end
 
   add_index "tr8n_translations", ["created_at"], :name => "tr8n_trans_created_at"
@@ -1319,7 +1336,6 @@ ActiveRecord::Schema.define(:version => 20130617181641) do
     t.boolean  "manager"
     t.string   "last_ip"
     t.string   "country_code"
-    t.integer  "remote_id"
   end
 
   add_index "tr8n_translators", ["created_at"], :name => "index_tr8n_translators_on_created_at"
@@ -1518,6 +1534,8 @@ ActiveRecord::Schema.define(:version => 20130617181641) do
     t.integer  "invitation_limit"
     t.integer  "invited_by_id"
     t.string   "invited_by_type"
+    t.string   "last_locale"
+    t.string   "paymill_id"
   end
 
   add_index "users", ["confirmation_token"], :name => "index_users_on_confirmation_token", :unique => true

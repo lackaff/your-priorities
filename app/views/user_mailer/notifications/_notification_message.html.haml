@@ -1,0 +1,7 @@
+%p
+  = @sender.name
+  = tr("just sent you a private message.","email")
+%p= @notifiable.content
+%p
+  = tr("You can answer here","email")
+  \: #{link_to @sender.profile_url+'/messages', @sender.profile_url+'/messages'}
