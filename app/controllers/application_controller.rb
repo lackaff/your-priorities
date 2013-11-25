@@ -5,8 +5,7 @@ require 'will_paginate/array'
 require 'whitelist'
 
 class ApplicationController < ActionController::Base
-
-  include FaceboxRender
+  protect_from_forgery
 
   include Facebooker2::Rails::Controller
 
@@ -27,6 +26,8 @@ class ApplicationController < ActionController::Base
   before_filter :setup_geoblocking
   before_filter :check_subdomain
   before_filter :check_geoblocking
+
+  before_filter :set_category_filter
 
   before_filter :authenticate_http_if_locked
 
@@ -57,11 +58,39 @@ class ApplicationController < ActionController::Base
 
   before_filter :set_last_locale
 
+
   #after_filter :sub_instance_cookie_lock_down
 
   layout :get_layout
 
-  protect_from_forgery
+  before_filter :store_location
+
+  def store_location
+    # store last url - this is needed for post-login redirect to whatever the user last visited.
+    if (request.fullpath != "/users/sign_in" &&
+        request.fullpath != "/users/sign_up" &&
+        !request.fullpath != "/users/sign_up" &&
+        request.fullpath != "/users/password" &&
+        !request.xhr?) # don't store ajax calls
+      session[:previous_url] = request.fullpath
+    end
+  end
+
+  def after_sign_in_path_for(resource)
+    if session["omniauth_data"]
+      if not current_user.facebook_uid and session["omniauth_data"][:facebook_id]
+        current_user.facebook_uid = session["omniauth_data"][:facebook_id]
+        current_user.save(validate: false)
+        flash[:notice] = I18n.t "devise.omniauth_callbacks.success", :kind => "Facebook"
+      end
+      session.delete("omniauth_data")
+    end
+    session[:previous_url] || redirect_back_path
+  end
+
+  def set_category_filter
+    Thread.current[:category_id_filter]=session[:category_id_filter]
+  end
 
   def set_last_locale
     if current_user
@@ -221,7 +250,8 @@ class ApplicationController < ActionController::Base
   def action_cache_path
     params.merge({:geoblocked=>@geoblocked, :host=>request.host, :country_code=>@country_code,
                   :locale=>session[:locale], :google_translate=>session[:enable_google_translate],
-                  :have_shown_welcome=>session[:have_shown_welcome], 
+                  :have_shown_welcome=>session[:have_shown_welcome],
+                  :category_id_filter=>session[:category_id_filter],
                   :last_selected_language=>cookies[:last_selected_language],
                   :flash=>flash.map {|k,v| "#{v}" }.join.parameterize})
   end
@@ -259,8 +289,8 @@ class ApplicationController < ActionController::Base
         sign_in @user, event: :authentication
       end
     end
-    if Rails.env.development?
-      Thread.current[:localhost_override] = "#{request.host}:#{request.port}"
+    if Rails.env.development? or Rails.env.test?
+        Thread.current[:localhost_override] = "#{request.host}:#{request.port}"
     end
   end
 
@@ -277,18 +307,6 @@ class ApplicationController < ActionController::Base
 
   def after_sign_out_path_for(resource_or_scope)
     stored_location_for(resource_or_scope) || '/' 
-  end
-
-  def after_sign_in_path_for(resource)
-    if session["omniauth_data"]
-      if not current_user.facebook_uid and session["omniauth_data"][:facebook_id]
-        current_user.facebook_uid = session["omniauth_data"][:facebook_id]
-        current_user.save(validate: false)
-        flash[:notice] = I18n.t "devise.omniauth_callbacks.success", :kind => "Facebook"
-      end
-      session.delete("omniauth_data")
-    end
-    redirect_back_path
   end
 
   # remove omniauth data if omniauth users navigate away from the sign in/up
@@ -451,8 +469,6 @@ class ApplicationController < ActionController::Base
         session[:enable_google_translate] = nil
       end
     end
-    
-    #@google_translate_enabled_for_locale = Tr8n::Config.current_language.google_key
   end
   
   def get_layout
@@ -472,7 +488,7 @@ class ApplicationController < ActionController::Base
   end
   
   def current_user_endorsements
-		@current_user_endorsements ||= current_user.endorsements.active.by_position.paginate(:include => :idea, :page => session[:endorsement_page], :per_page => 25)
+		@current_user_endorsements ||= current_user.endorsements.active.by_position.paginate(:include => :idea, :page => session[:endorsement_page], :per_page => 7)
   end
   
   def current_idea_ids
@@ -592,7 +608,6 @@ class ApplicationController < ActionController::Base
     item_count = 0
     @items[item_count]=[tr("Overview", "view/ideas/_nav"), @idea.show_url]
     if @idea.points_count > 0
-      @items[item_count+=1]=[tr("Debate ({count})", "view/ideas/_nav", :count => @idea.points_count),top_points_idea_url(@idea)]
       @items[item_count+=1]=[tr("Add point", "view/ideas/_nav"), @idea.new_point_url]
     end
     if @idea.idea_revisions_count>1
@@ -604,6 +619,7 @@ class ApplicationController < ActionController::Base
     if current_user and current_user.capitals_count>0 and @idea.status == 'published'
       @items[item_count+=1]=[tr("Buy an ad", "view/ideas/_nav"), new_idea_ad_url(@idea)]
     end
+    @items[item_count+=1]=[tr("Activities", "view/ideas/_nav"), activities_idea_url(@idea)]
     if current_user and current_user.is_admin?
       @items[item_count+=1]=[tr("Update status", "view/ideas/_nav"), update_status_idea_url(@idea)]
       @items[item_count+=1]=[tr("Edit", "view/ideas/_nav"), edit_idea_url(@idea)]
