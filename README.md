@@ -2,11 +2,65 @@
 
 Your Priorities is a web based platform that enables groups of people to share their ideas and together discover which are the most important ideas to implement by their communities. Users can add new ideas, add arguments for and against ideas, indicate if they support or oppose an idea, create a personal list of ideas and discuss all ideas. The end results are lists of top ideas in many categories as well as the best arguments for and against each idea. This service enables people to make up their minds about most issues in a short time.
 
+
 Your Priorities is being used on the [YrPri.org](https://www.yrpri.org/) global eDemocracy service and the [Better Reykjavik](http://www.betrireykjavik.is) civic innovation website in Iceland amongst other places.
 
-# Instructions
+##Development option 1: Use Docker
 
-## Setup the project for local development
+Install [Docker](http://www.docker.io/) on your system: visit [http://docs.docker.io/en/latest/installation/#installation-list](http://docs.docker.io/en/latest/installation/#installation-list)
+
+
+Clone Your Priorities locally
+````bash
+cd /yourpath
+git clone https://github.com/rbjarnason/your-priorities.git
+````
+
+Build Docker images
+````bash
+# Base docker image
+git clone https://github.com/rbjarnason/docker-base.git
+cd docker-base
+sudo docker build -t yrpri/base .
+cd ..
+
+# Database docker image
+git clone https://github.com/rbjarnason/docker-postgresql.git
+cd docker-postgresql
+sudo docker build -t yrpri/postgresql .
+cd ..
+
+# Rails docker image
+git clone https://github.com/rbjarnason/docker-rails.git
+cd docker-rails
+sudo docker build -t yrpri/rails .
+````
+
+Start database
+````bash
+sudo docker run -i -t -d --name postgresql yrpri/postgresql
+````
+
+Start rails docker image pointing to your local Your Priorities installation
+````bash
+sudo docker -D run -d -link postgresql:db -p 3000:3000 -v /yourpath/your-priorities:/var/www/your-priorities -e APP_NAME=your-priorities yrpri/rails
+````
+
+Test it: points a browser to your local server at port 3000 for example http://localhost:3000/ or http://your.ip.addr.number:3000
+````
+
+Debug the Docker image
+````bash
+sudo docker ps -notrunc
+sudo lxc-attach --name long_uid_from_docker_ps
+````
+now you are in the image
+````bash
+cd /var/log/supervise
+tail -f *
+````
+
+## Development option 2: Standard local development
 
 Fork the project from GitHub
 ````
@@ -32,7 +86,7 @@ $ git fetch robert
 $ git merge robert/master
 ````
 
-## Development on Ubuntu
+## 2a: Development on Ubuntu
 
 
 1. Install rvm the Ruby version manager
@@ -49,6 +103,18 @@ $ bundle install
 3. Install postgres
 ````bash
 $ sudo apt-get install postgresql
+=======
+sudo apt-get install build-essential
+sudo apt-get install libxslt-dev libxml2-dev
+sudo apt-get install libmysqlclient-dev
+sudo apt-get install libpq-dev
+sudo apt-get install libmagickwand-dev
+bundle install
+````
+
+Install database dependencies
+````bash
+sudo apt-get install postgresql
 ````
 
 4. Then start the psql shell
@@ -85,7 +151,7 @@ $ rails s
 
 10. Navigate to http://localhost:3000/
 
-## Development on OSX
+## 2b: Development on OSX
 
 1. Ensure prerequisites are installed
   * Ruby 2.0.0 (or later)
