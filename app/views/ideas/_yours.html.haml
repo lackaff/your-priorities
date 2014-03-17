@@ -1,6 +1,6 @@
 #right_column_ideas
   #your_ideas
-    - for endorsement in current_user_endorsements
+    - current_user_endorsements.each do |endorsement|
       .your_idea_endorsement{:id => "endorsement_#{endorsement.id}", :style => "cursor:move;padding-bottom:15px;"}
         .row{:class=>endorsement.is_up? ? "endorsement_up" : "endorsement_down"}
           .large-1.columns{:style=>"padding-right:5px;"}
@@ -13,7 +13,11 @@
                 :title => tr("Click the number to change its position on your list. You can also drag and drop the names to sort.", "view/ideas/_yours") |
           .large-9.columns
             .if.else{:class => "endorsement_<haml:silent> endorsement.is_up? </haml:silent><haml:block>up</haml:block><haml:silent> </haml:silent><haml:block>down</haml:block>"}
-              = link_to_unless_current h(endorsement.idea.name), endorsement.idea if endorsement.idea
+              - if endorsement.position<4
+                %b
+                  = link_to_unless_current h(endorsement.idea.name), endorsement.idea if endorsement.idea
+              - else
+                = link_to_unless_current h(endorsement.idea.name), endorsement.idea if endorsement.idea
           .large-2.columns{:style=>"vertical-align:top;padding-left:3px;"}
             .endorsement_x
               = link_to "x", endorsement_path(endorsement, :region => "your_ideas"),                                                        |
@@ -44,13 +48,13 @@
                   }
           )
       });
-  - if current_user.endorsements_count > 25
+  - if current_user.endorsements_count > 7
     %p
       = will_paginate(current_user_endorsements, :renderer => 'RemoteLinkRenderer', :previous_label=>tr("Previous","ajax pagination"),
                                                                                     :next_label=>tr("Next","ajax pagination"),
                                                                                     :class => "ajax_pagination", :inner_window => 2)
   %p
-    = tr("Vote ideas up or down to add an idea to your priorities list. Then drag and drop to change the order.", "view/ideas/_yours")
+    = tr("Vote ideas up or down to add them to your priorities list. You can drag and drop items in your list to change the order.", "view/ideas/_yours")
   - if current_user.endorsements_count > 0
     = #tr("The big numbers you see next to each idea is the overall rank across all members.", "view/ideas/_yours")
   - if current_user.endorsements_count > 4

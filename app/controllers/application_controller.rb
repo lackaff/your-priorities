@@ -68,10 +68,18 @@ class ApplicationController < ActionController::Base
     # store last url - this is needed for post-login redirect to whatever the user last visited.
     if (request.fullpath != "/users/sign_in" &&
         request.fullpath != "/users/sign_up" &&
-        !request.fullpath != "/users/sign_up" &&
-        request.fullpath != "/users/password" &&
+        request.fullpath != "/users/sign_out" &&
+        !request.fullpath.include?("idea_detail") &&
+        !request.fullpath.include?("/users/auth") &&
+        request.fullpath != "/users" &&
+        !request.fullpath.include?("/users/password") &&
+        !request.fullpath.include?("/users/invitation") &&
+        !request.fullpath.include?("/flag") &&
         !request.xhr?) # don't store ajax calls
+      Rails.logger.info("Store location: #{request.fullpath}")
       session[:previous_url] = request.fullpath
+    else
+      Rails.logger.info("Not storing location: #{request.fullpath}")
     end
   end
 
@@ -84,11 +92,12 @@ class ApplicationController < ActionController::Base
       end
       session.delete("omniauth_data")
     end
+    Rails.logger.debug("URL after sign in: #{session[:previous_url] || redirect_back_path}")
     session[:previous_url] || redirect_back_path
   end
 
   def set_category_filter
-    Thread.current[:category_id_filter]=session[:category_id_filter]
+    Thread.current[:category_id_filter]=session["category_id_filter_#{SubInstance.current.id}"]
   end
 
   def set_last_locale
@@ -101,7 +110,6 @@ class ApplicationController < ActionController::Base
   end
 
   def setup_currency_code
-
     if ENV['FORCE_CURRENCY']
       @currency_code = ENV['FORCE_CURRENCY']
     elsif Plan::GBP_COUNTRIES.include?(@country_code)
@@ -183,7 +191,13 @@ class ApplicationController < ActionController::Base
   end
 
   def setup_about_pages
-    @about_pages = Page.order("title").all
+    if SubInstance.current.short_name=="default"
+      default_pages = []
+    else
+      default_pages = Page.unscoped.where(:sub_instance_id=>SubInstance.find_by_short_name("default").id).order("title").all
+    end
+    my_pages = Page.unscoped.where(:sub_instance_id=>SubInstance.current.id).order("weight").all
+    @about_pages = my_pages + default_pages
   end
 
   def authenticate_http_if_locked
@@ -250,7 +264,7 @@ class ApplicationController < ActionController::Base
     params.merge({:geoblocked=>@geoblocked, :host=>request.host, :country_code=>@country_code,
                   :locale=>session[:locale], :google_translate=>session[:enable_google_translate],
                   :have_shown_welcome=>session[:have_shown_welcome],
-                  :category_id_filter=>session[:category_id_filter],
+                  :category_id_filter=>session["category_id_filter_#{SubInstance.current.id}"],
                   :last_selected_language=>cookies[:last_selected_language],
                   :flash=>flash.map {|k,v| "#{v}" }.join.parameterize})
   end
@@ -294,7 +308,7 @@ class ApplicationController < ActionController::Base
   end
 
   def redirect_back_path
-    Rails.logger.error "BACK: #{session[:user_return_to] || '/'}"
+    Rails.logger.info "URL: back #{session[:user_return_to] || '/'}"
     session[:user_return_to] || '/' 
   end
 
@@ -305,7 +319,7 @@ class ApplicationController < ActionController::Base
   end
 
   def after_sign_out_path_for(resource_or_scope)
-    stored_location_for(resource_or_scope) || '/' 
+    '/'
   end
 
   # remove omniauth data if omniauth users navigate away from the sign in/up
@@ -410,7 +424,7 @@ class ApplicationController < ActionController::Base
   end
 
   def check_geoblocking
-    Rails.logger.info("#{controller_name}/#{action_name} - #{@country_code} - locale #{current_locale} - #{current_sub_instance.short_name} - #{current_user ? (current_user.email ? current_user.email : current_user.login) : "Anonymous"}")
+    Rails.logger.info("#{controller_name}/#{action_name} - #{@country_code} - locale #{current_locale} - #{current_sub_instance.short_name} - #{current_user ? (current_user.email ? current_user.email : current_user.login) : "Anonymous"} - (#{current_user ? current_user.id : "-1"})")
     Rails.logger.info(request.user_agent)
     if SubInstance.current and SubInstance.current.geoblocking_enabled
       logged_in_user = current_user
@@ -441,12 +455,12 @@ class ApplicationController < ActionController::Base
       if cookies[:last_selected_language]
         session[:locale] = cookies[:last_selected_language]
         Rails.logger.info("Set language from cookie")
-      elsif @iso_country and @iso_country.default_locale
-        session[:locale] = @iso_country.default_locale
-        Rails.logger.info("Set language from geoip")
       elsif SubInstance.current and SubInstance.current.default_locale and SubInstance.current.default_locale!=""
         session[:locale] = SubInstance.current.default_locale
         Rails.logger.info("Set language from sub_instance")
+      elsif @iso_country and @iso_country.default_locale
+        session[:locale] = @iso_country.default_locale
+        Rails.logger.info("Set language from geoip")
       elsif Instance.current and Instance.current.default_locale
         session[:locale] = Instance.current.default_locale
         Rails.logger.info("Set language from instance")
@@ -488,7 +502,7 @@ class ApplicationController < ActionController::Base
   end
   
   def current_user_endorsements
-		@current_user_endorsements ||= current_user.endorsements.active.by_position.paginate(:include => :idea, :page => session[:endorsement_page], :per_page => 7)
+		@current_user_endorsements ||= current_user.endorsements.where(:sub_instance_id=>SubInstance.current.id).active.by_position.paginate(:include => :idea, :page => session[:endorsement_page], :per_page => 7)
   end
   
   def current_idea_ids

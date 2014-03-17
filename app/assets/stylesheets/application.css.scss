@@ -31,7 +31,7 @@ $default-float: left;
 
 // $body-bg: #fff;
 // $body-font-color: #222;
-// $body-font-family: "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif;
+$body-font-family: "Open Sans",Helvetica,Arial,sans-serif;;
 // $body-font-weight: normal;
 // $body-font-style: normal;
 
@@ -850,12 +850,12 @@ $button-border-color: darken($primary-color, $button-function-factor);
 //
 
 // Background and border styles
-$panel-bg: #eee;
+$panel-bg: #fff;
 $panel-border-style: solid;
-$panel-border-size: 0px;
+$panel-border-size: 1px;
 $panel-bg-1: #FFF;
 $panel-bg-2: #FFF;
-$panel-bg-3: #eee;
+$panel-bg-3: #fff;
 $panel-bg-4: #fff;
 
 // Control how much we darken things on hover
@@ -1267,9 +1267,10 @@ $topbar-link-bg-active: #c3c6c9;
 
 // Divider Styles
 
-// $topbar-divider-border-bottom: solid 1px lighten($topbar-bg, 10%);
-// $topbar-divider-border-top: solid 1px darken($topbar-bg, 10%);
-
+$topbar-divider-border-bottom: solid 1px lighten($topbar-bg, 10%);
+$topbar-divider-border-top: solid 1px lighten($topbar-bg, 10%);
+$topbar-divider-border-right: solid 1px lighten($topbar-bg, 10%);
+$topbar-divider-border-left: solid 1px lighten($topbar-bg, 10%);
 // Sticky Class
 
 // $topbar-sticky-class: ".sticky";
@@ -1361,11 +1362,19 @@ a {
 }
 
 .odd-idea-container {
-  background-color: #f7F7F7;
+  //background-color: #f7F7F7;
+  background-color: #fafafa;
+  border: solid 1px;
+  border-color: #ddd;
+  -webkit-border-radius: 5px;
 }
 
 .even-idea-container {
-  background-color: #efefef;
+  //background-color: #efefef;
+  background-color: #fafafa;
+  border: solid 1px;
+  border-color: #ddd;
+  -webkit-border-radius: 5px;
 }
 
 .top_level_idea_listing {
@@ -1469,10 +1478,13 @@ a {
 }
 
 .panel-mine {
-  background-color:rgba(255,255,255,0.7);
-  padding:14px;
-  height:100px;
-  h2 {
+  background-color:rgba(255,255,255,0.9);
+  padding-top:3px;
+  margin-top: 0px;
+  height:32px;
+  h3 {
+    margin-top: 0px;
+    padding-top: 0px;
     color: #000;
   }
   p {
@@ -1492,4 +1504,87 @@ a {
 }
 
 .sprite_clip_flag {
+}
+
+.panel-mine{
+  margin-left: -110px !important;
+  position: relative;
+  background: none;
+}
+
+.top-banner-custom {
+  background-size: 974 100;
+}
+
+.ad-text {
+  font-size:14px;
+  padding-top: 3px;
+}
+
+
+.ad-img {
+  float:left;
+}
+
+#message_to_users {
+  //padding: 10px;
+  //font-size: 18px;
+  margin-bottom: 10px;
+  //border: 1px dotted #ddd;
+  border-radius: 2px;
+  -moz-border-radius: 2px ;
+  -webkit-border-radius: 2px;
+}
+
+
+.button {
+  font-size: 1em;
+  border-radius: 15px;
+}
+
+#login {	border:1px solid #ccc; border-radius:15px; padding:15px; margin-top:35px; }
+
+.debate_button { padding: 10px 0 0 0px;}
+
+.gplus{margin-bottom: 5px !important;}
+
+#login {
+  border-radius: 2px !important;
+}
+
+.top-bar input, .top-bar .button {
+  height: 30px !important;
+}
+
+.top-bar-section ul li>a.button {
+  padding-top: 2px;
+}
+
+.new-idea {
+  font-size: 22px;
+  padding-left: 5%;
+  padding-right: 5%;
+  text-align: center;
+  font-size:22px;
+  font-weight: bold;
+  padding-top: 3px;
+}
+
+.partners
+{
+  float: right;
+  padding-right: 10px;
+}
+
+.top-bar-new-idea {
+  padding-left: 10px;
+}
+
+.center {
+  text-align: center;
+
+}
+
+.top_margin{
+  margin-top: 20px;
 }

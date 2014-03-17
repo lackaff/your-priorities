@@ -1,8 +1,12 @@
+#require ‘sidekiq/web’
+
 YourPriorities::Application.routes.draw do
   match '/donations/thank_you' => 'donations#thank_you'
   match '/donations/estartup' => 'donations#estartup'
   match '/donations/status' => 'donations#status'
   match '/donations/thank_you_estartup' => 'donations#thank_you_estartup'
+
+ # mount Sidekiq::Web, at: ‘/sidekiq’
 
   resources :donations
 
@@ -152,7 +156,6 @@ YourPriorities::Application.routes.draw do
       get :endorsed_top_points
       get :comments
       get :documents
-      get :idea_detail
       get :update_status
   	end
   	collection do

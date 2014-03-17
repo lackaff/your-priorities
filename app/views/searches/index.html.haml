@@ -47,34 +47,37 @@
             - @search_results.each do |result|
               - if result.class == Idea
                 %div
-                  %h3.test
-                    = tr("#{IDEA_TOKEN_CAPS}","search")
-                    \- #{time_ago(result.excerpts.created_at)}
-                    \ #{link_to tr("Show","search"), result.show_url}
-                  %span
-                    = link_to result.excerpts.name.force_encoding("UTF-8").html_safe, :controller=>"ideas", :action=>"show", :id=>result.id
+                  %h5
+                    = link_to result.excerpts.name.html_safe, :controller=>"ideas", :action=>"show", :id=>result.id
                   #search_results_body
-                    = result.excerpts.description.html_safe
+                    %p
+                      = result.excerpts.description.html_safe
+                    %span
+                      = tr("#{IDEA_TOKEN_CAPS}","search")
+                      \- #{time_ago(result.excerpts.created_at)}
+                      \ #{link_to tr("Show","search"), result.show_url}
                   %br/
               - elsif result.class == Point
                 %div
-                  %h3
-                    = tr("Point","search")
-                    \- #{time_ago(result.excerpts.created_at)}
-                    \ #{link_to tr("Show","search"), result.show_url}
-                  %span= link_to result.excerpts.name.force_encoding("UTF-8").html_safe, :controller=>"points", :action=>"show", :id=>result.id
+                  %h5
+                    = link_to result.excerpts.name.html_safe, :controller=>"points", :action=>"show", :id=>result.id
                   #search_results_body
-                    = result.excerpts.content.force_encoding("UTF-8").html_safe
+                    %p
+                      = result.excerpts.content.html_safe
+                    %span
+                      = tr("Point","search")
+                      \- #{time_ago(result.excerpts.created_at)}
+                      \ #{link_to tr("Show","search"), result.show_url}
                   %br/
-                  / </haml:block><haml:silent></haml:silent><haml:block>
               - elsif result.class == Comment
                 %div
-                  %h3.test
-                    = tr("Comment","search")
-                    \- #{time_ago(result.excerpts.created_at)}
-                    \ #{link_to tr("Show","search"), result.show_url}
                   #search_results_body
-                    = result.excerpts.content.force_encoding("UTF-8").html_safe
+                    %p
+                      = result.excerpts.content.html_safe
+                    %span
+                      = tr("Comment","search")
+                      \- #{time_ago(result.excerpts.created_at)}
+                      \ #{link_to tr("Show","search"), result.show_url}
                   %br/
             = foundation_paginate @search_results
         - else

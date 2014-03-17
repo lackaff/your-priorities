@@ -1,0 +1,29 @@
+.row
+  .large-12.columns.panel-bg-2
+    - if SubInstance.current.live_stream_id and SubInstance.current.live_stream_id!=""
+      %h2
+        = tr("Live stream","here")
+      = raw "<iframe width='100%' height='315' src='//www.youtube.com/embed/#{SubInstance.current.live_stream_id}' frameborder='0' allowfullscreen></iframe>"
+    - else
+      %h2
+        = tr("Welcome","here")
+      = raw "<iframe width='100%' height='315' src='//www.youtube.com/embed/t0lFd1poJfs' frameborder='0' allowfullscreen></iframe>"
+.row
+  .large-12.columns
+    - if current_user
+      %h2
+        = tr("Chat","here")
+      = raw "<iframe src='https://irc.yrpri.org:7778/?nick=#{current_user.login.gsub(" ","_")}_?#{"#"+SubInstance.current.name.downcase.gsub(" ","_")}' style='border:0; width:100%; height:450px;'></iframe>"
+    - else
+      %h2
+        = tr("Login to enable chat.","here")
+
+- unless @activities.blank?
+  .row
+    .large-12.columns
+      %h2.home_h1
+        = tr("Latest Activity","home")
+      .endless_scroll_activities
+        = render :partial => 'feed/activity_list_simple'
+      = link_to tr("More...","here"), "/feed/top_feed?page?#{@activities.next_page}", :class => 'load-more-posts', :remote => true if @activities.next_page
+

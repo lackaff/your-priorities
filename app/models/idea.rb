@@ -21,7 +21,7 @@ class Idea < ActiveRecord::Base
   scope :alphabetical, :order => "ideas.name asc"
   scope :by_impressions_count, :order => "ideas.impressions_count desc"
   scope :by_most_discussed, :order => "points_count + discussions_count desc"
-  scope :top_rank, :order => "ideas.score desc", :conditions=>"position != 0"
+  scope :top_rank, :order => "ideas.score desc" # :conditions=>"position != 0"
   scope :top_three, :order => "ideas.score desc", :limit=>3
 
   scope :top_24hr, :conditions => "ideas.position_endorsed_24hr IS NOT NULL", :order => "ideas.position_endorsed_24hr desc"
@@ -222,20 +222,22 @@ class Idea < ActiveRecord::Base
   end
 
   def endorse(user,request=nil,referral=nil)
-    endorsement = self.endorsements.find_by_user_id(user.id)
-    if not endorsement
-      endorsement = Endorsement.new(:value => 1, :idea => self, :sub_instance_id => self.sub_instance_id, :user => user,:referral => referral)
-      endorsement.ip_address = request.remote_ip if request
-      endorsement.save
-      endorsement.insert_lowest_at(4)
-    elsif endorsement.is_down?
-      endorsement.flip_up
-      endorsement.save
+    if user
+      endorsement = self.endorsements.find_by_user_id(user.id)
+      if not endorsement
+        endorsement = Endorsement.new(:value => 1, :idea => self, :sub_instance_id => self.sub_instance_id, :user => user,:referral => referral)
+        endorsement.ip_address = request.remote_ip if request
+        endorsement.save
+        endorsement.insert_lowest_at(4)
+      elsif endorsement.is_down?
+        endorsement.flip_up
+        endorsement.save
+      end
+      if endorsement.is_replaced?
+        endorsement.activate!
+      end
+      return endorsement
     end
-    if endorsement.is_replaced?
-      endorsement.activate!
-    end
-    return endorsement
   end
   
   def oppose(user,request=nil,referral=nil)

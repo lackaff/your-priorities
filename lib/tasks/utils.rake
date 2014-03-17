@@ -60,6 +60,22 @@ CODE_TO_SHORTNAME = {"AE"=>"uae", "LY"=>"lybia", "VA"=>"vatican",
                      "PS"=>"ps", "GB"=>"uk", "SY"=>"syria", "RU"=>"russia",
                      "MD"=>"moldova", "LA"=>"lao" }
 namespace :utils do
+  desc "fix_endorsement_positions_for_better_iceland"
+  task :fix_endorsement_positions_for_better_iceland => :environment do
+    #Endorsement.all.each do |e| puts e.position end
+    #Endorsement.where("sub_instance_id IS NULL").all.each do |e| puts Idea.unscoped.find(e.idea_id).name end;get chomp
+    #Endorsement.where("sub_instance_id IS NULL").all.each do |e| puts e.created_at end;get chomp
+    Endorsement.where("sub_instance_id IS NULL").all.each do |e| e.sub_instance_id=SubInstance.where(:short_name=>"default").id;e.save end
+    User.unscoped.all.each do |user|
+      SubInstance.current = SubInstance.find(user.sub_instance_id)
+      Endorsement.where(:user_id=>user.id,:sub_instance_id=>user.sub_instance_id).all.each do |e|
+        puts SubInstance.current = SubInstance.find(user.sub_instance_id)
+        e.insert_at(1)
+        e.save
+      end
+    end
+  end
+
   desc "FixBetterNeighborhoodSubInstances"
   task :fix_bn do
     SubInstance.all.each do |sub_instance|
@@ -110,11 +126,37 @@ namespace :utils do
     end
   end
 
+  desc "Move ideas and points to a new user"
+  task :move_ideas_to_new_user => :environment do
+    raise 'Needs sub_instance_short_name= from_user= and to_user=' unless ENV['sub_instance_short_name'] and ENV['from_user'] and ENV['to_user']
+    sub_instance = SubInstance.where(:short_name=>ENV['sub_instance_short_name']).first
+    from_user = User.where(:email=>ENV['from_user'], :sub_instance_id=>sub_instance.id).first
+    to_user = User.where(:email=>ENV['to_user'], :sub_instance_id=>sub_instance.id).first
+    puts "Moving all ideas from #{from_user.login} to #{to_user.login} on #{sub_instance.short_name}"
+    puts "Yes?"
+    STDIN.gets.chomp
+    puts Idea.unscoped.where(:sub_instance_id=>sub_instance.id, :user_id=>from_user.id).update_all(:user_id=>to_user.id)
+    Point.unscoped.where(:sub_instance_id=>sub_instance.id, :user_id=>from_user.id).all.each do |p|
+      puts p.name
+      p.user_id = to_user.id
+      p.revisions.each do |r|
+        r.user_id = to_user.id
+        r.recreate_author_sentences(p)
+        r.save(:validate=>false)
+      end
+      puts p.save(:validate=>false)
+    end
+    puts Activity.unscoped.where(:sub_instance_id=>sub_instance.id, :user_id=>from_user.id).update_all(:user_id=>to_user.id)
+    puts Endorsement.unscoped.where(:sub_instance_id=>sub_instance.id, :user_id=>from_user.id).update_all(:user_id=>to_user.id)
+    puts "The end"
+  end
+
   desc "Create BR categories"
   task :delete_all_from_process_documents => :environment do
     ProcessDocumentElement.delete_all
     ProcessDocument.delete_all
   end
+
 
   desc "Create BR categories"
   task :create_br_categories => :environment do
@@ -140,9 +182,17 @@ namespace :utils do
 
   desc "Dump users csv"
   task :dump_users_csv => :environment do
+    all_users = User.unscoped.all
+    puts "All users count #{all_users.count}"
     puts "Login,Email"
-    User.unscoped.all.each do |u|
-      puts "#{u.login},#{u.email}"
+    all_users.each_with_index do |u,i|
+      if u.email
+        unless u.email.include?("@ibuar.is")
+          puts "#{u.login},#{u.email}"
+        end
+      else
+       # puts "no email for #{u.id} #{u.login}"
+      end
     end
   end
 

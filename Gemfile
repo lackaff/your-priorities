@@ -1,14 +1,20 @@
 source 'https://rubygems.org'
 
-ruby '2.1.0'
+gem 'rails', '3.2.17'
+ruby '2.0.0'
+gem "respond-rails", :git=>"git://github.com/rbjarnason/respond-rails"
+gem 'selectivizr-rails', :git=>"git://github.com/rbjarnason/selectivizr-rails"
+gem 'pie-rails'
+gem 'bcrypt-ruby', '~> 3.0.0'
 gem 'paymill', :git=>"git://github.com/dkd/paymill-ruby.git"
+gem 'faraday', '~> 0.8.0'
 gem 'soap4r-spox'#, :git => 'git://github.com/swalterd/soap4r.git'
 gem 'ruby-saml', :git => 'git://github.com/rbjarnason/ruby-saml.git', :ref => "6be3170ba2a5c7eac12d5255e32a62e6fadd1cc2"
-gem 'tolk'#, :git=>"git://github.com/rbjarnason/tolk"
+#gem 'tolk', :path => '/home/robert/RubymineProjects/tolk' #, :git=>"git://github.com/rbjarnason/tolk"
+gem 'tolk', :git=>"git://github.com/rbjarnason/tolk"
 gem 'ruby_parser'
 gem 'aws-s3'
 gem 'aws-sdk', require: false
-gem 'rails', '3.2.14'
 gem 'safe_yaml', '0.9.3'
 gem 'airbrake'
 gem 'memcachier'
@@ -19,6 +25,7 @@ gem "mysql2"
 gem 'unf'
 gem 'puma'
 gem 'test-unit'
+#gem 'passenger'
 #gem 'brcypt-ruby', '3.0.0'
 gem "tinymce-rails",'<= 3.5.6'
 gem 'foundation-will_paginate'
@@ -58,13 +65,14 @@ gem 'mogli', github: 'mmangino/mogli'
 gem 'facebooker2', github: 'mmangino/facebooker2'
 gem 'dalli'
 #gem 'thinking-sphinx', '3.0.5'
-##gem 'flying-sphinx',   '1.0.0'
-gem 'flying-sphinx', '~> 1.0.0',
-     git: 'git://github.com/flying-sphinx/flying-sphinx.git',
-     branch: 'master',
-     ref: '707dd60675'
+#gem 'flying-sphinx'
+#gem 'flying-sphinx', '~> 1.0.0',
+#     git: 'git://github.com/flying-sphinx/flying-sphinx.git',
+#     branch: 'master',
+#     ref: '707dd60675'
 #gem "flying-sphinx","0.8.5"
-gem 'thinking-sphinx'
+gem 'thinking-sphinx', '3.0.3'
+gem 'flying-sphinx',   '1.0.0'
 #gem 'thinking-sphinx',
 #      :git => 'git://github.com/pat/thinking-sphinx.git',
 #      :ref => '55788f7b96'
@@ -80,12 +88,13 @@ gem 'pry-rails', require: false
 gem 'awesome_print', require: false
 gem 'htmldiff'
 gem 'acts_as_list'
-gem 'html5shiv-rails'
-gem 'devise','2.2.4'
+#gem 'html5shiv-rails'
+gem 'devise'
 gem 'devise-i18n'
 gem 'devise-async'
 gem 'devise_invitable'
 gem 'omniauth-facebook'
+gem 'omniauth-twitter'
 
 group :development do
 #  ruby '2.0.0'

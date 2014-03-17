@@ -21,7 +21,12 @@ class UsersController < ApplicationController
     @user = current_user
     if request.put?
       respond_to do |format|
-        if @user.update_attributes(params[:user])
+        unless User.where(:email=>params[:user][:email]).first
+          @user.email = params[:user][:email] if params[:user][:email]
+        end
+        @user.login = params[:user][:login] if params[:user][:login]
+        @user.buddy_icon = params[:user][:buddy_icon] if params[:user][:buddy_icon]
+        if @user.save(:validate=>false)
           Rails.logger.debug(params[:user])
           Rails.logger.debug(@user.inspect)
           flash[:notice] = tr("Saved settings for {user_name}", "controller/users", :user_name => @user.name)

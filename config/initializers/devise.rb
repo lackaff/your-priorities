@@ -6,6 +6,9 @@ Devise.setup do |config|
   # note that it will be overwritten if you use your own mailer class with default "from" parameter.
   config.mailer_sender = "please-change-me-at-config-initializers-devise@example.com"
 
+  config.secret_key = '1f19e83c4156d8dca6f7f30c8bd5ed8c2ac462181b4ccaadf2959d9ab26184140c2f350f4603bf74f2ad51d0a26938b46411514adffcbbe2251f03ec12c1b16e'
+  config.allow_insecure_token_lookup = true
+
   # Configure the class responsible to send e-mails.
   config.mailer = "UserMailer"
 
@@ -23,7 +26,9 @@ Devise.setup do |config|
   # session. If you need permissions, you should implement that in a before filter.
   # You can also supply a hash where the value is a boolean determining whether
   # or not authentication should be aborted when the value is not present.
-  config.authentication_keys = [ :email ]
+  #config.authentication_keys = [ :email, :sub_instance_id ]
+
+  config.reset_password_keys = [ :email, :sub_instance_id ]
 
   # Configure parameters from the request object used for authentication. Each entry
   # given should be a request method and it will automatically be passed to the
@@ -240,4 +245,5 @@ Devise.setup do |config|
   # end
 
   config.omniauth :facebook, ENV["FACEBOOKER2_APP_ID"], ENV["FACEBOOKER2_API_KEY"]
+  config.omniauth :twitter, ENV["TWITTER_KEY"], ENV["TWITTER_SECRET"]
 end

@@ -1,5 +1,11 @@
 ---
 es-CO:
+  002d4fac39a17aaa96c1a79a1a710edb: Email de ventas
+  0077d575bfc52d2176b427189982b6a6: Saved %{point_name}
+  00b177e080ff1c3d340997fb01c3951c: Aceptar invitación
+  010818f282f6ca53d86d4f988f83744f: Guardar tus preferencias
+  01374d70036cb0b48058e7e031eeb680: Necesitas identificarte para acceder a esta web
+    privada
   number:
     percentage:
       format:
@@ -110,9 +116,9 @@ es-CO:
     select:
       prompt: Por favor selecciona
     array:
-      two_words_connector: y
-      last_word_connector: y
-      words_connector: ','
+      words_connector: ', '
+      two_words_connector: ' y '
+      last_word_connector: ' y '
   datetime:
     distance_in_words:
       half_a_minute: medio minuto

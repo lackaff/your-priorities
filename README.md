@@ -5,7 +5,7 @@ Your Priorities is a web based platform that enables groups of people to share t
 
 Your Priorities is being used on the [YrPri.org](https://www.yrpri.org/) global eDemocracy service and the [Better Reykjavik](http://www.betrireykjavik.is) civic innovation website in Iceland amongst other places.
 
-##Development option 1: Use Docker
+## 1: Docker on Ubuntu
 
 Install [Docker](http://www.docker.io/) on your system: visit [http://docs.docker.io/en/latest/installation/#installation-list](http://docs.docker.io/en/latest/installation/#installation-list)
 
@@ -15,25 +15,36 @@ Clone Your Priorities locally
 cd /yourpath
 git clone https://github.com/rbjarnason/your-priorities.git
 ````
-
-Build Docker images
+Copy database config template (no change needed):
 ````bash
-# Base docker image
+cd your-priorities
+cp config/database.yml.dist config/database.yml
+````
+
+Option 1 - Install Your Priorities images from Docker Index
+````bash
+sudo docker pull yrpri/base
+sudo docker pull yrpri/postgresql
+sudo docker pull yrpri/rails
+(optional IRC support)
+sudo docker pull yrpri/ngircd
+sudo docker pull yrpri/kiwiirc
+````
+
+Option 2 - Build docker repositories from github dockerfiles
+````bash
+# Base docker repository
 git clone https://github.com/rbjarnason/docker-base.git
 cd docker-base
 sudo docker build -t yrpri/base .
 cd ..
 
-# Database docker image
-git clone https://github.com/rbjarnason/docker-postgresql.git
-cd docker-postgresql
-sudo docker build -t yrpri/postgresql .
-cd ..
-
-# Rails docker image
-git clone https://github.com/rbjarnason/docker-rails.git
-cd docker-rails
-sudo docker build -t yrpri/rails .
+And the same for:
+https://github.com/rbjarnason/docker-postgresql.git and yrpri/postgresql
+https://github.com/rbjarnason/docker-rails.git and yrpri/rails
+(optional IRC support)
+https://github.com/rbjarnason/docker-ngircd.git and yrpri/ngircd
+https://github.com/rbjarnason/docker-kiwiirc.git and yrpri/kiwiirc
 ````
 
 Start database
@@ -41,26 +52,43 @@ Start database
 sudo docker run -i -t -d --name postgresql yrpri/postgresql
 ````
 
+Optional IRC support
+````bash
+sudo docker -D run -d -p 6667:6667 yrpri/ngircd
+sudo docker -D run -d -p 7778:7778 -v /root/certs:/etc/kiwiirc -e KIWI_IRC_SERVER_HOST=irc.yrpri.org -e KIWI_IRC_SERVER_PORT=6667 yrpri/kiwiirc
+````
+
 Start rails docker image pointing to your local Your Priorities installation
 ````bash
 sudo docker -D run -d -link postgresql:db -p 3000:3000 -v /yourpath/your-priorities:/var/www/your-priorities -e APP_NAME=your-priorities yrpri/rails
 ````
 
-Test it: points a browser to your local server at port 3000 for example http://localhost:3000/ or http://your.ip.addr.number:3000
+See if it is running
+````bash
+sudo docker ps
+````
+Test it
+````bash
+The image will take a little while to start up, it will have to run bundle install each time its started.
+Browser to http://localhost:3000/ or http://your.ip.addr.number:3000
 ````
 
 Debug the Docker image
 ````bash
 sudo docker ps -notrunc
 sudo lxc-attach --name long_uid_from_docker_ps
-````
-now you are in the image
-````bash
-cd /var/log/supervise
+<now you are in the image>
+cd /var/log/supervisor
 tail -f *
 ````
 
-## Development option 2: Standard local development
+Default admin user and password
+````bash
+admin@admin.is
+admin
+````
+
+## 2: Setup the project locally
 
 Fork the project from GitHub
 ````
@@ -69,9 +97,10 @@ Fork the project from GitHub
 3. Click the "Fork" button at the top of the page to create your own fork
 ````
 
-Download / clone to your development machine. (Replace YOURNAME with your github username.)
+Download / clone on your local Ubuntu installation
 ````bash
-$ git clone git@github.com:YOURNAME/your-priorities.git
+(replace YOURNAME with your github username)
+git clone git@github.com:YOURNAME/your-priorities.git
 ````
 Setup git to easily merge from the main branch. Add the following to the .git/config file:
 ````
@@ -97,13 +126,6 @@ $ curl -L https://get.rvm.io | bash -s stable
 
 2. Go into the application and install all gems
 ````bash
-$ bundle install
-````
-
-3. Install postgres
-````bash
-$ sudo apt-get install postgresql
-=======
 sudo apt-get install build-essential
 sudo apt-get install libxslt-dev libxml2-dev
 sudo apt-get install libmysqlclient-dev
@@ -115,6 +137,10 @@ bundle install
 Install database dependencies
 ````bash
 sudo apt-get install postgresql
+sudo apt-get install mysql-server
+
+
+
 ````
 
 4. Then start the psql shell
@@ -124,10 +150,11 @@ $ psql
 ````
 
 5. When in psql create a user and the Your Priorities dev database
-````sql
-create user puser password 'xxxxxxxx';
-create database yrpri_dev with encoding 'utf8';
-grant all privileges on database yrpri_dev to puser;
+````bash
+CREATE USER puser PASSWORD 'xxxxxxxx'
+CREATE DATABASE yrpri_dev WITH ENCODING 'utf8';
+GRANT ALL PRIVILEGES ON DATABASE yrpri_dev TO puser;
+ALTER USER puser CREATEDB;
 ````
 
 6. Then exit the postgres shell and copy and edit the config/database.yml.dist file
@@ -204,7 +231,28 @@ password: admin
 
 2. Change the administrator password, and configure the site.
 
-## Production Deployment on Heroku
+## 3: Running the test
+
+
+Currently Your Priorities only has one working test, more tests would be appricated. 
+This one test is based on Selenium and tests most of the user facing features. To 
+run the tests you need to open up two terminal windows.  You need to have Firefox 
+installed.
+
+
+In the first window you start the integration test before running the command in the other window
+````bash
+rake test:integration
+````
+
+In the second window when you see the test database being created from the output start the test server.
+If you start it too early then the database cant be dropped for recreation and if you start the server too 
+then Selenium won't have a server to test against.
+````bash
+rails s -e test
+````
+
+## 4: Production Deployment on Heroku
 
 Your Priorities is now setup to be a Heroku app, using S3 and CloudFront for deployment.
 
@@ -215,7 +263,8 @@ Heroku parameters you need to setup yourself:
         AWS_ACCESS_KEY_ID:            ----------------------
         AWS_SECRET_ACCESS_KEY:        ----------------------
         CF_ASSET_HOST:                ----------------------.cloudfront.net
-        FACEBOOKER2_API_KEY:          ----------------------
+        DATABASE_URL:
+		FACEBOOKER2_API_KEY:          ----------------------
         FACEBOOKER2_APP_ID:           ----------------------
         FOG_DIRECTORY:                ----------------------
         S3_BUCKET:                    ----------------------
