@@ -12,32 +12,36 @@ Install [Docker](http://www.docker.io/) on your system: visit [http://docs.docke
 
 Clone Your Priorities locally
 ````bash
-cd /yourpath
-git clone https://github.com/rbjarnason/your-priorities.git
+$ cd /yourpath
+$ git clone https://github.com/rbjarnason/your-priorities.git
 ````
 Copy database config template (no change needed):
 ````bash
-cd your-priorities
-cp config/database.yml.dist config/database.yml
+$ cd your-priorities
+$ cp config/database.yml.dist config/database.yml
 ````
 
 Option 1 - Install Your Priorities images from Docker Index
+sudo may not be necessary on your system (e.g. OSX)
 ````bash
-sudo docker pull yrpri/base
-sudo docker pull yrpri/postgresql
-sudo docker pull yrpri/rails
+$ [sudo] docker pull yrpri/base
+$ [sudo] docker pull yrpri/postgresql
+$ [sudo] docker pull yrpri/rails
+````
 (optional IRC support)
-sudo docker pull yrpri/ngircd
-sudo docker pull yrpri/kiwiirc
+````bash
+$ [sudo] docker pull yrpri/ngircd
+$ [sudo] docker pull yrpri/kiwiirc
 ````
 
 Option 2 - Build docker repositories from github dockerfiles
 ````bash
 # Base docker repository
-git clone https://github.com/rbjarnason/docker-base.git
-cd docker-base
-sudo docker build -t yrpri/base .
+$ git clone https://github.com/rbjarnason/docker-base.git
+$ cd docker-base
+$ [sudo] docker build -t yrpri/base .
 cd ..
+````
 
 And the same for:
 https://github.com/rbjarnason/docker-postgresql.git and yrpri/postgresql
@@ -45,45 +49,44 @@ https://github.com/rbjarnason/docker-rails.git and yrpri/rails
 (optional IRC support)
 https://github.com/rbjarnason/docker-ngircd.git and yrpri/ngircd
 https://github.com/rbjarnason/docker-kiwiirc.git and yrpri/kiwiirc
-````
 
 Start database
 ````bash
-sudo docker run -i -t -d --name postgresql yrpri/postgresql
+$ [sudo] docker run -i -t -d --name postgresql yrpri/postgresql
 ````
 
 Optional IRC support
 ````bash
-sudo docker -D run -d -p 6667:6667 yrpri/ngircd
-sudo docker -D run -d -p 7778:7778 -v /root/certs:/etc/kiwiirc -e KIWI_IRC_SERVER_HOST=irc.yrpri.org -e KIWI_IRC_SERVER_PORT=6667 yrpri/kiwiirc
+$ [sudo] docker -D run -d -p 6667:6667 yrpri/ngircd
+$ [sudo] docker -D run -d -p 7778:7778 -v /root/certs:/etc/kiwiirc -e KIWI_IRC_SERVER_HOST=irc.yrpri.org -e KIWI_IRC_SERVER_PORT=6667 yrpri/kiwiirc
 ````
 
 Start rails docker image pointing to your local Your Priorities installation
 ````bash
-sudo docker -D run -d -link postgresql:db -p 3000:3000 -v /yourpath/your-priorities:/var/www/your-priorities -e APP_NAME=your-priorities yrpri/rails
+$ [sudo] docker -D run -d -link postgresql:db -p 3000:3000 -v /yourpath/your-priorities:/var/www/your-priorities -e APP_NAME=your-priorities yrpri/rails
 ````
 
 See if it is running
 ````bash
-sudo docker ps
+$ [sudo] docker ps
 ````
 Test it
-````bash
+````
 The image will take a little while to start up, it will have to run bundle install each time its started.
-Browser to http://localhost:3000/ or http://your.ip.addr.number:3000
+Browse to http://localhost:3000/ or http://your.ip.addr.number:3000
 ````
 
 Debug the Docker image
 ````bash
-sudo docker ps -notrunc
-sudo lxc-attach --name long_uid_from_docker_ps
+$ [sudo] docker ps -notrunc
+$ [sudo] lxc-attach --name long_uid_from_docker_ps
 <now you are in the image>
 cd /var/log/supervisor
 tail -f *
 ````
 
 Default admin user and password
-````bash
+````
 admin@admin.is
 admin
 ````
@@ -100,7 +103,7 @@ Fork the project from GitHub
 Download / clone on your local Ubuntu installation
 ````bash
 (replace YOURNAME with your github username)
-git clone git@github.com:YOURNAME/your-priorities.git
+$ git clone git@github.com:YOURNAME/your-priorities.git
 ````
 Setup git to easily merge from the main branch. Add the following to the .git/config file:
 ````
